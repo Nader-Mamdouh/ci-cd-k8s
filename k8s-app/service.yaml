@@ -5,13 +5,11 @@ metadata:
     app: app-svc
   name: app-svc
 spec:
-  ports:
-  - name: app-svc
-    port: 5000
-    protocol: TCP
-    targetPort: 5000
+  type: LoadBalancer
   selector:
     app: app-weather
-  type: NodePort
-status:
-  loadBalancer: {}
+  ports:
+    - name: http
+      protocol: TCP
+      port: 5000
+      targetPort: 5000
