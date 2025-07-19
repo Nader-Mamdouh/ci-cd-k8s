@@ -1,0 +1,51 @@
+name: Ci/Cd Pipeline
+
+on:
+  workflow_dispatch:
+
+jobs:
+  Build:
+    name: Build and Push Docker Image
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Build Docker image
+        run: docker build -t nadermamdouh869/weather-app:latest .
+
+      - name: Login to Docker Hub
+        run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
+
+      - name: Push Docker image
+        run: docker push nadermamdouh869/weather-app:latest
+
+  Deploy:
+    name: Deploy to Kubernetes
+    needs: [ConfigureK8s, Build]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Kubernetes CLI
+        uses: azure/setup-kubectl@v3
+        with:
+          version: 'latest'
+
+      - name: Configure kubectl
+        run: |
+          mkdir -p $HOME/.kube
+          echo "${{ secrets.KUBECONFIG_K8S }}" | base64 --decode > $HOME/.kube/config
+          kubectl config use-context cicd-context
+
+      - name: Deploy to Kubernetes
+        run: |
+          kubectl apply -f deployment.yaml
+          kubectl apply -f service.yaml
+
+      - name: Get Pods
+        run: kubectl get pods
+
+      - name: Get svc
+        run: kubectl get svc
